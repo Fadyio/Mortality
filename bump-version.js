@@ -22,12 +22,25 @@ function bumpFile(filePath) {
   return newVersion;
 }
 
+function setFileVersion(filePath, version) {
+  const content = JSON.parse(fs.readFileSync(filePath, "utf8"));
+  content.version = version;
+
+  if (content.packages?.[""]) {
+    content.packages[""].version = version;
+  }
+
+  fs.writeFileSync(filePath, JSON.stringify(content, null, 2) + "\n");
+}
+
 const manifestPath = path.join(__dirname, "manifest.json");
 const packagePath = path.join(__dirname, "package.json");
+const packageLockPath = path.join(__dirname, "package-lock.json");
 
 const newVersion = bumpFile(manifestPath);
-bumpFile(packagePath);
+setFileVersion(packagePath, newVersion);
+setFileVersion(packageLockPath, newVersion);
 
 console.log(
-  `Version bumped to ${newVersion} in both manifest.json and package.json`,
+  `Version bumped to ${newVersion} in manifest.json, package.json, and package-lock.json`,
 );

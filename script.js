@@ -14,15 +14,13 @@ const defaultSettings = {
 };
 document.addEventListener("DOMContentLoaded", () => {
     let settings = { ...defaultSettings };
-    let timerRequestId;
+    let timerTimeoutId;
     let resizeTimeout;
-    let lastTotalUnits = -1;
-    let lastUnitsLived = -1;
+    let lastGridRenderTime = 0;
     // --- Elements ---
     const canvas = document.getElementById("grid-canvas");
     const ctx = canvas.getContext("2d", { alpha: false });
     const timerDisplay = document.getElementById("timer-display");
-    const timerTitle = document.getElementById("timer-title");
     const overlayContainer = document.getElementById("overlay-container");
     const settingsPanel = document.getElementById("settings-panel");
     const settingsToggle = document.getElementById("settings-toggle");
@@ -68,7 +66,7 @@ document.addEventListener("DOMContentLoaded", () => {
             if (result.settings) {
                 // Merge safely and validate
                 const saved = result.settings;
-                settings = {
+                settings = normalizeSettings({
                     dob: typeof saved.dob === "string" && !isNaN(Date.parse(saved.dob))
                         ? saved.dob
                         : defaultSettings.dob,
@@ -90,7 +88,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     transparentTimer: Boolean(saved.transparentTimer),
                     boldTimer: Boolean(saved.boldTimer),
                     showAge: Boolean(saved.showAge),
-                };
+                });
             }
         }
         catch (e) {
@@ -111,6 +109,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
     async function saveSettings(debounce = false) {
+        settings = normalizeSettings(settings);
         if (debounce) {
             if (saveTimeout)
                 clearTimeout(saveTimeout);
@@ -148,6 +147,21 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
     // --- Logic ---
+    function normalizeSettings(nextSettings) {
+        const normalized = { ...nextSettings };
+        const minWeight = unitWeights[normalized.minPrecision];
+        const maxWeight = unitWeights[normalized.maxPrecision];
+        normalized.lifeExpectancy = clampNumber(Number(normalized.lifeExpectancy) || defaultSettings.lifeExpectancy, 1, 150);
+        normalized.size = clampNumber(Number(normalized.size) || defaultSettings.size, 10, 100);
+        normalized.timerFontSize = clampNumber(Number(normalized.timerFontSize) || defaultSettings.timerFontSize, 1, 20);
+        if (minWeight > maxWeight) {
+            normalized.minPrecision = normalized.maxPrecision;
+        }
+        return normalized;
+    }
+    function clampNumber(value, min, max) {
+        return Math.min(Math.max(value, min), max);
+    }
     function populateInputs() {
         if (dobInput)
             dobInput.value = settings.dob;
@@ -226,8 +240,12 @@ document.addEventListener("DOMContentLoaded", () => {
         const dotOffset = (boxSize - dotSize) / 2;
         // --- Units Lived Calculation ---
         let unitsLived = 0;
+        let currentUnitProgress = 0;
         if (settings.unitPrecision === "weeks") {
-            unitsLived = Math.floor(Math.abs(now.getTime() - dob.getTime()) / (1000 * 60 * 60 * 24 * 7));
+            const weekMs = 1000 * 60 * 60 * 24 * 7;
+            const elapsedMs = Math.max(0, now.getTime() - dob.getTime());
+            unitsLived = Math.floor(elapsedMs / weekMs);
+            currentUnitProgress = (elapsedMs % weekMs) / weekMs;
         }
         else if (settings.unitPrecision === "months") {
             unitsLived =
@@ -236,6 +254,10 @@ document.addEventListener("DOMContentLoaded", () => {
                     now.getMonth();
             if (now.getDate() < dob.getDate())
                 unitsLived--;
+            unitsLived = Math.max(0, unitsLived);
+            const currentMonthStart = addCalendarUnits(dob, unitsLived, "months");
+            const nextMonthStart = addCalendarUnits(dob, unitsLived + 1, "months");
+            currentUnitProgress = getProgressBetween(now, currentMonthStart, nextMonthStart);
         }
         else {
             unitsLived = now.getFullYear() - dob.getFullYear();
@@ -243,7 +265,12 @@ document.addEventListener("DOMContentLoaded", () => {
             tempDate.setFullYear(now.getFullYear());
             if (now < tempDate)
                 unitsLived--;
+            unitsLived = Math.max(0, unitsLived);
+            const currentYearStart = addCalendarUnits(dob, unitsLived, "years");
+            const nextYearStart = addCalendarUnits(dob, unitsLived + 1, "years");
+            currentUnitProgress = getProgressBetween(now, currentYearStart, nextYearStart);
         }
+        unitsLived = Math.min(unitsLived, totalUnits);
         const colors = [
             "#e91e63",
             "#ff5722",
@@ -266,15 +293,10 @@ document.addEventListener("DOMContentLoaded", () => {
             const row = Math.floor(i / bestCols);
             const x = startX + col * boxSize + dotOffset;
             const y = startY + row * boxSize + dotOffset;
-            if (i < unitsLived) {
-                ctx.fillStyle = colors[Math.floor(i / colorDivisor) % colors.length];
-            }
-            else if (i === unitsLived) {
-                ctx.fillStyle = "#ffffff";
-            }
-            else {
-                ctx.fillStyle = "#222222";
-            }
+            const unitColor = colors[Math.floor(i / colorDivisor) % colors.length];
+            const isPastUnit = i < unitsLived;
+            const isCurrentUnit = i === unitsLived && unitsLived < totalUnits;
+            ctx.fillStyle = isPastUnit ? unitColor : "#222222";
             if (isCircle) {
                 ctx.beginPath();
                 ctx.arc(x + dotSize / 2, y + dotSize / 2, dotSize / 2, 0, Math.PI * 2);
@@ -283,15 +305,46 @@ document.addEventListener("DOMContentLoaded", () => {
             else {
                 ctx.fillRect(x, y, dotSize, dotSize);
             }
-            if (i === unitsLived) {
-                ctx.strokeStyle = "white";
-                ctx.lineWidth = 1;
-                if (isCircle)
-                    ctx.stroke();
-                else
-                    ctx.strokeRect(x - 1, y - 1, dotSize + 2, dotSize + 2);
+            if (isCurrentUnit && currentUnitProgress > 0) {
+                fillUnitProgress(ctx, x, y, dotSize, currentUnitProgress, unitColor, isCircle);
             }
         }
+        lastGridRenderTime = Date.now();
+    }
+    function addCalendarUnits(date, amount, unit) {
+        const result = new Date(date);
+        const targetDay = date.getDate();
+        result.setDate(1);
+        if (unit === "months") {
+            result.setMonth(date.getMonth() + amount);
+        }
+        else {
+            result.setFullYear(date.getFullYear() + amount);
+        }
+        result.setDate(Math.min(targetDay, getLastDayOfMonth(result)));
+        return result;
+    }
+    function getLastDayOfMonth(date) {
+        return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
+    }
+    function getProgressBetween(now, start, end) {
+        const duration = end.getTime() - start.getTime();
+        if (duration <= 0)
+            return 0;
+        return Math.min(Math.max((now.getTime() - start.getTime()) / duration, 0), 1);
+    }
+    function fillUnitProgress(context, x, y, size, progress, color, isCircle) {
+        const fillHeight = size * Math.min(Math.max(progress, 0), 1);
+        const fillY = y + size - fillHeight;
+        context.save();
+        if (isCircle) {
+            context.beginPath();
+            context.arc(x + size / 2, y + size / 2, size / 2, 0, Math.PI * 2);
+            context.clip();
+        }
+        context.fillStyle = color;
+        context.fillRect(x, fillY, size, fillHeight);
+        context.restore();
     }
     // Resize Listener
     window.addEventListener("resize", () => {
@@ -300,16 +353,16 @@ document.addEventListener("DOMContentLoaded", () => {
         resizeTimeout = window.setTimeout(renderGrid, 100);
     });
     function startTimer() {
-        if (timerRequestId)
-            cancelAnimationFrame(timerRequestId);
+        if (timerTimeoutId)
+            clearTimeout(timerTimeoutId);
         const loop = () => {
             updateTimerDisplay();
-            timerRequestId = requestAnimationFrame(loop);
+            if (Date.now() - lastGridRenderTime >= 60000) {
+                renderGrid();
+            }
+            timerTimeoutId = window.setTimeout(loop, getTimerDelay());
         };
-        timerRequestId = requestAnimationFrame(loop);
-        if (timerTitle) {
-            timerTitle.style.display = "none";
-        }
+        loop();
         // Apply Precision Visibility
         units.forEach((unit) => {
             const el = document.getElementById(unit);
@@ -321,6 +374,9 @@ document.addEventListener("DOMContentLoaded", () => {
             el.parentElement.style.display =
                 unitWeight >= minWeight && unitWeight <= maxWeight ? "flex" : "none";
         });
+    }
+    function getTimerDelay() {
+        return settings.minPrecision === "milliseconds" ? 33 : 1000;
     }
     function updateTimerDisplay() {
         const now = new Date();
@@ -369,7 +425,7 @@ document.addEventListener("DOMContentLoaded", () => {
             return;
         const valStr = value.toString().padStart(2, "0");
         if (unitValues[id] !== valStr) {
-            el.innerText = valStr;
+            el.textContent = valStr;
             unitValues[id] = valStr;
         }
     }
@@ -384,24 +440,36 @@ document.addEventListener("DOMContentLoaded", () => {
             saveSettings();
         });
         lifeExpectancyInput?.addEventListener("change", (e) => {
-            settings.lifeExpectancy = Math.min(Math.max(parseInt(e.target.value, 10) || 80, 1), 150);
+            settings.lifeExpectancy = clampNumber(parseInt(e.target.value, 10) ||
+                defaultSettings.lifeExpectancy, 1, 150);
             saveSettings();
         });
         minPrecisionInput?.addEventListener("change", (e) => {
             settings.minPrecision = e.target.value;
+            if (unitWeights[settings.minPrecision] > unitWeights[settings.maxPrecision]) {
+                settings.maxPrecision = settings.minPrecision;
+                if (maxPrecisionInput)
+                    maxPrecisionInput.value = settings.maxPrecision;
+            }
             saveSettings();
         });
         maxPrecisionInput?.addEventListener("change", (e) => {
             settings.maxPrecision = e.target.value;
+            if (unitWeights[settings.minPrecision] > unitWeights[settings.maxPrecision]) {
+                settings.minPrecision = settings.maxPrecision;
+                if (minPrecisionInput)
+                    minPrecisionInput.value = settings.minPrecision;
+            }
             saveSettings();
         });
         sizeInput?.addEventListener("input", (e) => {
-            settings.size = parseInt(e.target.value, 10) || 80;
+            settings.size = clampNumber(parseInt(e.target.value, 10) ||
+                defaultSettings.size, 10, 100);
             saveSettings(true);
         });
         fontSizeInput?.addEventListener("input", (e) => {
-            settings.timerFontSize =
-                parseFloat(e.target.value) || 6;
+            settings.timerFontSize = clampNumber(parseFloat(e.target.value) ||
+                defaultSettings.timerFontSize, 1, 20);
             saveSettings(true);
         });
         transparentTimerInput?.addEventListener("change", (e) => {

@@ -45,7 +45,6 @@
                     </div>
                 </div>
 
-                <div id="timer-title" style="display: none"></div>
             </div>
 
             <button id="settings-toggle" aria-label="Settings">
@@ -73,10 +72,7 @@
                 </div>
                 <!-- Toggle Switch Removed -->
 
-                <div
-                    id="settings-content"
-                    style="padding: 0 30px 30px 30px; flex: 1; overflow-y: auto"
-                >
+                <div id="settings-content">
                     <div class="form-group">
                         <label for="dob-input">Date of Birth</label>
                         <input type="date" id="dob-input" />
@@ -88,6 +84,8 @@
                         <input
                             type="number"
                             id="life-expectancy-input"
+                            min="1"
+                            max="150"
                             value="80"
                         />
                     </div>
@@ -111,7 +109,7 @@
                             type="number"
                             id="font-size-input"
                             min="2"
-                            max="12"
+                            max="20"
                             step="0.5"
                             value="6"
                         />
@@ -142,13 +140,7 @@
                         </div>
                     </div>
 
-                    <hr
-                        style="
-                            border: 0;
-                            border-top: 1px solid #444;
-                            margin: 20px 0;
-                        "
-                    />
+                    <hr class="settings-divider" />
 
                     <div class="form-group">
                         <label for="max-precision">Largest Precision</label>
@@ -176,7 +168,7 @@
                     <div class="form-group">
                         <label>Shape</label>
                         <div class="checkbox-group">
-                            <label style="font-weight: normal; margin: 0"
+                            <label class="radio-label"
                                 ><input
                                     type="radio"
                                     name="shape"
@@ -185,7 +177,7 @@
                                 />
                                 Square</label
                             >
-                            <label style="font-weight: normal; margin: 0"
+                            <label class="radio-label"
                                 ><input
                                     type="radio"
                                     name="shape"
@@ -197,9 +189,7 @@
                     </div>
 
                     <div class="form-group">
-                        <label style="text-align: center"
-                            >Chapter Precision</label
-                        >
+                        <label class="center-label">Chapter Precision</label>
                         <div class="segmented-control">
                             <label
                                 ><input

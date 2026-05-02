@@ -153,14 +153,6 @@ input[type="range"]::-moz-range-track {
     letter-spacing: 2px;
 }
 
-#timer-title {
-    font-size: 3rem;
-    margin-bottom: 30px;
-    font-weight: 300;
-    letter-spacing: -0.02em;
-    opacity: 0.9;
-}
-
 /* Settings Toggle Button */
 #settings-toggle {
     position: absolute;
@@ -304,6 +296,18 @@ input[type="range"]::-moz-range-track {
     border-radius: 4px;
 }
 
+#settings-content {
+    padding: 0 30px 30px;
+    flex: 1;
+    overflow-y: auto;
+}
+
+.settings-divider {
+    border: 0;
+    border-top: 1px solid #444;
+    margin: 20px 0;
+}
+
 /* Form Elements */
 .form-group {
     margin-bottom: 28px;
@@ -394,6 +398,15 @@ input[type="range"]::-moz-range-track {
     text-transform: none;
     color: white;
     font-weight: 500;
+}
+
+.checkbox-group .radio-label {
+    margin: 0;
+    font-weight: 400;
+}
+
+.center-label {
+    text-align: center;
 }
 
 .checkbox-group input[type="radio"] {

@@ -28,10 +28,9 @@ const defaultSettings: Settings = {
 
 document.addEventListener("DOMContentLoaded", () => {
   let settings: Settings = { ...defaultSettings };
-  let timerRequestId: number | undefined;
+  let timerTimeoutId: number | undefined;
   let resizeTimeout: number | undefined;
-  let lastTotalUnits: number = -1;
-  let lastUnitsLived: number = -1;
+  let lastGridRenderTime = 0;
 
   // --- Elements ---
   const canvas = document.getElementById("grid-canvas") as HTMLCanvasElement;
@@ -39,7 +38,6 @@ document.addEventListener("DOMContentLoaded", () => {
   const timerDisplay = document.getElementById(
     "timer-display",
   ) as HTMLDivElement;
-  const timerTitle = document.getElementById("timer-title") as HTMLDivElement;
   const overlayContainer = document.getElementById(
     "overlay-container",
   ) as HTMLDivElement;
@@ -117,7 +115,7 @@ document.addEventListener("DOMContentLoaded", () => {
       if (result.settings) {
         // Merge safely and validate
         const saved = result.settings;
-        settings = {
+        settings = normalizeSettings({
           dob:
             typeof saved.dob === "string" && !isNaN(Date.parse(saved.dob))
               ? saved.dob
@@ -148,7 +146,7 @@ document.addEventListener("DOMContentLoaded", () => {
           transparentTimer: Boolean(saved.transparentTimer),
           boldTimer: Boolean(saved.boldTimer),
           showAge: Boolean(saved.showAge),
-        };
+        });
       }
     } catch (e) {
       console.error("Error loading settings:", e);
@@ -169,6 +167,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   async function saveSettings(debounce: boolean = false) {
+    settings = normalizeSettings(settings);
     if (debounce) {
       if (saveTimeout) clearTimeout(saveTimeout);
       saveTimeout = window.setTimeout(async () => {
@@ -213,6 +212,38 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // --- Logic ---
+  function normalizeSettings(nextSettings: Settings): Settings {
+    const normalized = { ...nextSettings };
+    const minWeight = unitWeights[normalized.minPrecision];
+    const maxWeight = unitWeights[normalized.maxPrecision];
+
+    normalized.lifeExpectancy = clampNumber(
+      Number(normalized.lifeExpectancy) || defaultSettings.lifeExpectancy,
+      1,
+      150,
+    );
+    normalized.size = clampNumber(
+      Number(normalized.size) || defaultSettings.size,
+      10,
+      100,
+    );
+    normalized.timerFontSize = clampNumber(
+      Number(normalized.timerFontSize) || defaultSettings.timerFontSize,
+      1,
+      20,
+    );
+
+    if (minWeight > maxWeight) {
+      normalized.minPrecision = normalized.maxPrecision;
+    }
+
+    return normalized;
+  }
+
+  function clampNumber(value: number, min: number, max: number) {
+    return Math.min(Math.max(value, min), max);
+  }
+
   function populateInputs() {
     if (dobInput) dobInput.value = settings.dob;
     if (lifeExpectancyInput)
@@ -297,22 +328,42 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // --- Units Lived Calculation ---
     let unitsLived = 0;
+    let currentUnitProgress = 0;
     if (settings.unitPrecision === "weeks") {
-      unitsLived = Math.floor(
-        Math.abs(now.getTime() - dob.getTime()) / (1000 * 60 * 60 * 24 * 7),
-      );
+      const weekMs = 1000 * 60 * 60 * 24 * 7;
+      const elapsedMs = Math.max(0, now.getTime() - dob.getTime());
+      unitsLived = Math.floor(elapsedMs / weekMs);
+      currentUnitProgress = (elapsedMs % weekMs) / weekMs;
     } else if (settings.unitPrecision === "months") {
       unitsLived =
         (now.getFullYear() - dob.getFullYear()) * 12 -
         dob.getMonth() +
         now.getMonth();
       if (now.getDate() < dob.getDate()) unitsLived--;
+      unitsLived = Math.max(0, unitsLived);
+      const currentMonthStart = addCalendarUnits(dob, unitsLived, "months");
+      const nextMonthStart = addCalendarUnits(dob, unitsLived + 1, "months");
+      currentUnitProgress = getProgressBetween(
+        now,
+        currentMonthStart,
+        nextMonthStart,
+      );
     } else {
       unitsLived = now.getFullYear() - dob.getFullYear();
       const tempDate = new Date(dob);
       tempDate.setFullYear(now.getFullYear());
       if (now < tempDate) unitsLived--;
+      unitsLived = Math.max(0, unitsLived);
+      const currentYearStart = addCalendarUnits(dob, unitsLived, "years");
+      const nextYearStart = addCalendarUnits(dob, unitsLived + 1, "years");
+      currentUnitProgress = getProgressBetween(
+        now,
+        currentYearStart,
+        nextYearStart,
+      );
     }
+
+    unitsLived = Math.min(unitsLived, totalUnits);
 
     const colors = [
       "#e91e63",
@@ -340,13 +391,11 @@ document.addEventListener("DOMContentLoaded", () => {
       const x = startX + col * boxSize + dotOffset;
       const y = startY + row * boxSize + dotOffset;
 
-      if (i < unitsLived) {
-        ctx.fillStyle = colors[Math.floor(i / colorDivisor) % colors.length];
-      } else if (i === unitsLived) {
-        ctx.fillStyle = "#ffffff";
-      } else {
-        ctx.fillStyle = "#222222";
-      }
+      const unitColor = colors[Math.floor(i / colorDivisor) % colors.length];
+      const isPastUnit = i < unitsLived;
+      const isCurrentUnit = i === unitsLived && unitsLived < totalUnits;
+
+      ctx.fillStyle = isPastUnit ? unitColor : "#222222";
 
       if (isCircle) {
         ctx.beginPath();
@@ -356,13 +405,74 @@ document.addEventListener("DOMContentLoaded", () => {
         ctx.fillRect(x, y, dotSize, dotSize);
       }
 
-      if (i === unitsLived) {
-        ctx.strokeStyle = "white";
-        ctx.lineWidth = 1;
-        if (isCircle) ctx.stroke();
-        else ctx.strokeRect(x - 1, y - 1, dotSize + 2, dotSize + 2);
+      if (isCurrentUnit && currentUnitProgress > 0) {
+        fillUnitProgress(
+          ctx,
+          x,
+          y,
+          dotSize,
+          currentUnitProgress,
+          unitColor,
+          isCircle,
+        );
       }
     }
+
+    lastGridRenderTime = Date.now();
+  }
+
+  function addCalendarUnits(
+    date: Date,
+    amount: number,
+    unit: "months" | "years",
+  ) {
+    const result = new Date(date);
+    const targetDay = date.getDate();
+
+    result.setDate(1);
+    if (unit === "months") {
+      result.setMonth(date.getMonth() + amount);
+    } else {
+      result.setFullYear(date.getFullYear() + amount);
+    }
+    result.setDate(Math.min(targetDay, getLastDayOfMonth(result)));
+    return result;
+  }
+
+  function getLastDayOfMonth(date: Date) {
+    return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
+  }
+
+  function getProgressBetween(now: Date, start: Date, end: Date) {
+    const duration = end.getTime() - start.getTime();
+    if (duration <= 0) return 0;
+    return Math.min(
+      Math.max((now.getTime() - start.getTime()) / duration, 0),
+      1,
+    );
+  }
+
+  function fillUnitProgress(
+    context: CanvasRenderingContext2D,
+    x: number,
+    y: number,
+    size: number,
+    progress: number,
+    color: string,
+    isCircle: boolean,
+  ) {
+    const fillHeight = size * Math.min(Math.max(progress, 0), 1);
+    const fillY = y + size - fillHeight;
+
+    context.save();
+    if (isCircle) {
+      context.beginPath();
+      context.arc(x + size / 2, y + size / 2, size / 2, 0, Math.PI * 2);
+      context.clip();
+    }
+    context.fillStyle = color;
+    context.fillRect(x, fillY, size, fillHeight);
+    context.restore();
   }
 
   // Resize Listener
@@ -372,17 +482,16 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   function startTimer() {
-    if (timerRequestId) cancelAnimationFrame(timerRequestId);
+    if (timerTimeoutId) clearTimeout(timerTimeoutId);
 
     const loop = () => {
       updateTimerDisplay();
-      timerRequestId = requestAnimationFrame(loop);
+      if (Date.now() - lastGridRenderTime >= 60_000) {
+        renderGrid();
+      }
+      timerTimeoutId = window.setTimeout(loop, getTimerDelay());
     };
-    timerRequestId = requestAnimationFrame(loop);
-
-    if (timerTitle) {
-      timerTitle.style.display = "none";
-    }
+    loop();
 
     // Apply Precision Visibility
     units.forEach((unit) => {
@@ -396,6 +505,10 @@ document.addEventListener("DOMContentLoaded", () => {
       el.parentElement.style.display =
         unitWeight >= minWeight && unitWeight <= maxWeight ? "flex" : "none";
     });
+  }
+
+  function getTimerDelay() {
+    return settings.minPrecision === "milliseconds" ? 33 : 1000;
   }
 
   function updateTimerDisplay() {
@@ -450,7 +563,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const valStr = value.toString().padStart(2, "0");
     if (unitValues[id] !== valStr) {
-      el.innerText = valStr;
+      el.textContent = valStr;
       unitValues[id] = valStr;
     }
   }
@@ -472,8 +585,10 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     lifeExpectancyInput?.addEventListener("change", (e) => {
-      settings.lifeExpectancy = Math.min(
-        Math.max(parseInt((e.target as HTMLInputElement).value, 10) || 80, 1),
+      settings.lifeExpectancy = clampNumber(
+        parseInt((e.target as HTMLInputElement).value, 10) ||
+          defaultSettings.lifeExpectancy,
+        1,
         150,
       );
       saveSettings();
@@ -481,22 +596,43 @@ document.addEventListener("DOMContentLoaded", () => {
 
     minPrecisionInput?.addEventListener("change", (e) => {
       settings.minPrecision = (e.target as HTMLInputElement).value;
+      if (
+        unitWeights[settings.minPrecision] > unitWeights[settings.maxPrecision]
+      ) {
+        settings.maxPrecision = settings.minPrecision;
+        if (maxPrecisionInput) maxPrecisionInput.value = settings.maxPrecision;
+      }
       saveSettings();
     });
 
     maxPrecisionInput?.addEventListener("change", (e) => {
       settings.maxPrecision = (e.target as HTMLInputElement).value;
+      if (
+        unitWeights[settings.minPrecision] > unitWeights[settings.maxPrecision]
+      ) {
+        settings.minPrecision = settings.maxPrecision;
+        if (minPrecisionInput) minPrecisionInput.value = settings.minPrecision;
+      }
       saveSettings();
     });
 
     sizeInput?.addEventListener("input", (e) => {
-      settings.size = parseInt((e.target as HTMLInputElement).value, 10) || 80;
+      settings.size = clampNumber(
+        parseInt((e.target as HTMLInputElement).value, 10) ||
+          defaultSettings.size,
+        10,
+        100,
+      );
       saveSettings(true);
     });
 
     fontSizeInput?.addEventListener("input", (e) => {
-      settings.timerFontSize =
-        parseFloat((e.target as HTMLInputElement).value) || 6;
+      settings.timerFontSize = clampNumber(
+        parseFloat((e.target as HTMLInputElement).value) ||
+          defaultSettings.timerFontSize,
+        1,
+        20,
+      );
       saveSettings(true);
     });
 
