@@ -461,17 +461,29 @@ document.addEventListener("DOMContentLoaded", () => {
     color: string,
     isCircle: boolean,
   ) {
-    const fillHeight = size * Math.min(Math.max(progress, 0), 1);
-    const fillY = y + size - fillHeight;
+    const normalizedProgress = Math.min(Math.max(progress, 0), 1);
 
     context.save();
     if (isCircle) {
+      const centerX = x + size / 2;
+      const centerY = y + size / 2;
+      const radius = size / 2;
+      const startAngle = -Math.PI / 2;
+      const endAngle = startAngle + Math.PI * 2 * normalizedProgress;
+
       context.beginPath();
-      context.arc(x + size / 2, y + size / 2, size / 2, 0, Math.PI * 2);
-      context.clip();
+      context.moveTo(centerX, centerY);
+      context.arc(centerX, centerY, radius, startAngle, endAngle);
+      context.closePath();
+      context.fillStyle = color;
+      context.fill();
+    } else {
+      const fillHeight = size * normalizedProgress;
+      const fillY = y + size - fillHeight;
+
+      context.fillStyle = color;
+      context.fillRect(x, fillY, size, fillHeight);
     }
-    context.fillStyle = color;
-    context.fillRect(x, fillY, size, fillHeight);
     context.restore();
   }
 
