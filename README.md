@@ -26,7 +26,7 @@
   </a>
 
   <img src="https://img.shields.io/github/last-commit/Fadyio/Mortality?&style=for-the-badge&color=C9CBFF&logoColor=D9E0EE&labelColor=302D41" alt="Last Commit">
-  <a href="https://addons.mozilla.org/en-US/firefox/addon/mortality-life-countdown/" target="_blank"><img src="https://img.shields.io/amo/v/mortality-life-countdown??&style=for-the-badge&color=C9CBFF&logoColor=D9E0EE&labelColor=302D41&label=Firefox%20Add-ons" alt="Firefox Add-ons"></a>
+  <a href="https://link.fadyio.com/Mortality" target="_blank"><img src="https://img.shields.io/amo/v/mortality-life-countdown??&style=for-the-badge&color=C9CBFF&logoColor=D9E0EE&labelColor=302D41&label=Firefox%20Add-ons" alt="Firefox Add-ons"></a>
 </p>
 
 <dev>
