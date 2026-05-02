@@ -1,0 +1,26 @@
+{
+  "manifest_version": 3,
+  "name": "Mortality - Life Countdown",
+  "version": "1.0.8",
+  "description": "Replace your Firefox new tab with a visual reminder of life's finite nature. See your life as a grid of weeks and a countdown timer.",
+  "author": "Fady Nagh",
+  "homepage_url": "https://github.com/fadyio/Mortality",
+  "permissions": ["storage"],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'"
+  },
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "mortality@extension",
+      "strict_min_version": "115.0"
+    }
+  },
+  "chrome_url_overrides": {
+    "newtab": "newtab.html"
+  },
+  "icons": {
+    "48": "icons/icon-48.png",
+    "96": "icons/icon-96.png",
+    "128": "icons/icon-128.png"
+  }
+}

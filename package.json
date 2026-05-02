@@ -1,0 +1,19 @@
+{
+  "name": "mortality",
+  "version": "1.0.8",
+  "description": "",
+  "main": "script.js",
+  "scripts": {
+    "build": "tsc",
+    "bump": "node bump-version.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "MIT",
+  "type": "commonjs",
+  "devDependencies": {
+    "@types/firefox-webext-browser": "^143.0.0",
+    "typescript": "^5.9.3"
+  }
+}

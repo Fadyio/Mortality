@@ -1,0 +1,71 @@
+name: Build and Release
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build TypeScript
+        run: npm run build
+
+      - name: Create icons directory
+        run: mkdir -p icons
+
+      - name: Create icons (using ImageMagick)
+        run: |
+          sudo apt-get update && sudo apt-get install -y imagemagick
+          convert icon.png -resize 48x48 icons/icon-48.png
+          convert icon.png -resize 96x96 icons/icon-96.png
+          convert icon.png -resize 128x128 icons/icon-128.png
+
+      - name: Get version
+        id: version
+        run: |
+          VERSION=$(node -p "require('./manifest.json').version")
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Submit to Firefox Add-ons (AMO)
+        run: |
+          npx web-ext sign \
+            --api-key "${{ secrets.AMO_JWT_ISSUER }}" \
+            --api-secret "${{ secrets.AMO_JWT_SECRET }}" \
+            --channel listed \
+            --source-dir . \
+            --artifacts-dir web-ext-artifacts
+
+      - name: Create extension zip (for GitHub Release)
+        run: |
+          zip -r mortality-firefox.zip manifest.json newtab.html styles.css script.js icons/
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v${{ steps.version.outputs.VERSION }}
+          name: Release v${{ steps.version.outputs.VERSION }}
+          files: |
+            mortality-firefox.zip
+            web-ext-artifacts/*.xpi
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

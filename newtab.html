@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Mortality</title>
+        <link rel="stylesheet" href="styles.css" />
+    </head>
+
+    <body>
+        <div id="app">
+            <canvas id="grid-canvas"></canvas>
+
+            <div id="overlay-container">
+                <div id="timer-container">
+                    <div id="timer-display">
+                        <div class="time-unit">
+                            <span id="years" class="number">00</span>
+                            <span class="label">YEARS</span>
+                        </div>
+                        <div class="time-unit">
+                            <span id="months" class="number">00</span>
+                            <span class="label">MONTHS</span>
+                        </div>
+                        <div class="time-unit">
+                            <span id="days" class="number">00</span>
+                            <span class="label">DAYS</span>
+                        </div>
+                        <div class="time-unit">
+                            <span id="hours" class="number">00</span>
+                            <span class="label">HOURS</span>
+                        </div>
+                        <div class="time-unit">
+                            <span id="minutes" class="number">00</span>
+                            <span class="label">MINUTES</span>
+                        </div>
+                        <div class="time-unit">
+                            <span id="seconds" class="number">00</span>
+                            <span class="label">SECONDS</span>
+                        </div>
+                        <div class="time-unit">
+                            <span id="milliseconds" class="number">00</span>
+                            <span class="label">MS</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="timer-title" style="display: none"></div>
+            </div>
+
+            <button id="settings-toggle" aria-label="Settings">
+                <svg
+                    viewBox="0 0 24 24"
+                    width="24"
+                    height="24"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    fill="none"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                >
+                    <circle cx="12" cy="12" r="3"></circle>
+                    <path
+                        d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"
+                    ></path>
+                </svg>
+            </button>
+
+            <div id="settings-panel" class="hidden">
+                <div class="settings-header">
+                    <h2>Settings</h2>
+                    <button id="close-settings">&times;</button>
+                </div>
+                <!-- Toggle Switch Removed -->
+
+                <div
+                    id="settings-content"
+                    style="padding: 0 30px 30px 30px; flex: 1; overflow-y: auto"
+                >
+                    <div class="form-group">
+                        <label for="dob-input">Date of Birth</label>
+                        <input type="date" id="dob-input" />
+                    </div>
+                    <div class="form-group">
+                        <label for="life-expectancy-input"
+                            >Life Expectancy (Years)</label
+                        >
+                        <input
+                            type="number"
+                            id="life-expectancy-input"
+                            value="80"
+                        />
+                    </div>
+
+                    <!-- Theme selection removed -->
+
+                    <div class="form-group">
+                        <label for="size-input">Dot Size</label>
+                        <input
+                            type="range"
+                            id="size-input"
+                            min="10"
+                            max="100"
+                            value="80"
+                        />
+                    </div>
+
+                    <div class="form-group">
+                        <label for="font-size-input">Timer Font Size</label>
+                        <input
+                            type="number"
+                            id="font-size-input"
+                            min="2"
+                            max="12"
+                            step="0.5"
+                            value="6"
+                        />
+                    </div>
+
+                    <div class="form-group">
+                        <div class="checkbox-group">
+                            <input type="checkbox" id="transparent-timer" />
+                            <label for="transparent-timer"
+                                >Transparent Timer Background</label
+                            >
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <div class="checkbox-group">
+                            <input type="checkbox" id="bold-timer" />
+                            <label for="bold-timer">Bold Timer Font</label>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <div class="checkbox-group">
+                            <input type="checkbox" id="show-age" />
+                            <label for="show-age"
+                                >Show Age (instead of Time Remaining)</label
+                            >
+                        </div>
+                    </div>
+
+                    <hr
+                        style="
+                            border: 0;
+                            border-top: 1px solid #444;
+                            margin: 20px 0;
+                        "
+                    />
+
+                    <div class="form-group">
+                        <label for="max-precision">Largest Precision</label>
+                        <select id="max-precision">
+                            <option value="years">Years</option>
+                            <option value="months">Months</option>
+                            <option value="days">Days</option>
+                            <option value="hours">Hours</option>
+                            <option value="minutes">Minutes</option>
+                            <option value="seconds">Seconds</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="min-precision">Smallest Precision</label>
+                        <select id="min-precision">
+                            <option value="milliseconds">Milliseconds</option>
+                            <option value="seconds">Seconds</option>
+                            <option value="minutes">Minutes</option>
+                            <option value="hours">Hours</option>
+                            <option value="days">Days</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Shape</label>
+                        <div class="checkbox-group">
+                            <label style="font-weight: normal; margin: 0"
+                                ><input
+                                    type="radio"
+                                    name="shape"
+                                    value="square"
+                                    checked
+                                />
+                                Square</label
+                            >
+                            <label style="font-weight: normal; margin: 0"
+                                ><input
+                                    type="radio"
+                                    name="shape"
+                                    value="circle"
+                                />
+                                Circle</label
+                            >
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label style="text-align: center"
+                            >Chapter Precision</label
+                        >
+                        <div class="segmented-control">
+                            <label
+                                ><input
+                                    type="radio"
+                                    name="unit-precision"
+                                    value="weeks"
+                                    checked
+                                /><span>Weeks</span></label
+                            >
+                            <label
+                                ><input
+                                    type="radio"
+                                    name="unit-precision"
+                                    value="months"
+                                /><span>Months</span></label
+                            >
+                            <label
+                                ><input
+                                    type="radio"
+                                    name="unit-precision"
+                                    value="years"
+                                /><span>Years</span></label
+                            >
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <script src="script.js"></script>
+    </body>
+</html>
