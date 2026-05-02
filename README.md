@@ -43,7 +43,7 @@ A simple Firefox extension that replaces your new tab page with a visual reminde
 ## Installation
 
 <div align="center">
-  <a href="https://addons.mozilla.org/en-US/firefox/addon/mortality-life-countdown/">
+  <a href="https://link.fadyio.com/Mortality">
     <img src="https://blog.mozilla.org/addons/files/2015/11/get-the-addon.png" alt="Get the Firefox Add-on" height="60" />
   </a>
 </div>
