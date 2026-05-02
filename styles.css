@@ -1,0 +1,439 @@
+:root {
+    --bg-color: #111;
+
+    --box-future: #222;
+    --box-past-1: #e91e63;
+    --box-past-2: #ff5722;
+    --box-past-3: #ffc107;
+    --box-past-4: #8bc34a;
+    --box-past-5: #4caf50;
+    --box-past-6: #00bcd4;
+    --box-past-7: #2196f3;
+    --box-past-8: #3f51b5;
+    --box-past-9: #673ab7;
+    --text-color: #f5f5f5;
+    --timer-font-size: 6rem;
+    --timer-label-size: 0.9rem;
+    --panel-bg: rgba(20, 20, 20, 0.85);
+    --input-bg: rgba(255, 255, 255, 0.08);
+    --input-border: rgba(255, 255, 255, 0.1);
+    --accent: #2196f3;
+    --accent-hover: #42a5f5;
+    --font-family:
+        "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+        sans-serif;
+}
+
+/* Global Reset & Base */
+body {
+    margin: 0;
+    padding: 0;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    font-family: var(--font-family);
+    overflow: hidden;
+    height: 100vh;
+    width: 100vw;
+}
+
+/* Range Input Modernization */
+input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    background: transparent;
+    margin: 10px 0;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    height: 18px;
+    width: 18px;
+    border-radius: 50%;
+    background: var(--text-color);
+    cursor: pointer;
+    margin-top: -7px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.4);
+    transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+input[type="range"]::-webkit-slider-thumb:hover {
+    transform: scale(1.2);
+}
+
+input[type="range"]::-webkit-slider-runnable-track {
+    width: 100%;
+    height: 4px;
+    cursor: pointer;
+    background: white !important;
+    border-radius: 4px;
+}
+
+input[type="range"]::-moz-range-track {
+    width: 100%;
+    height: 4px;
+    cursor: pointer;
+    background: white !important;
+    border-radius: 4px;
+}
+
+/* App Layout */
+#app {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+#grid-canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+}
+
+/* Timer Overlay */
+#overlay-container {
+    position: relative;
+    z-index: 10;
+    text-align: center;
+    background: rgba(18, 18, 18, 0.6);
+    padding: 40px 60px;
+    border-radius: 24px;
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+    transition: all 0.3s ease;
+}
+
+#overlay-container.transparent {
+    background: transparent;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    border: none;
+    box-shadow: none;
+}
+
+#timer-display {
+    display: flex;
+    gap: 2rem;
+    justify-content: center;
+}
+
+.time-unit {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.number {
+    font-size: var(--timer-font-size);
+    font-weight: 200;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.02em;
+}
+
+.bold-timer .number {
+    font-weight: 700;
+}
+
+.label {
+    font-size: var(--timer-label-size);
+    font-weight: 600;
+    text-transform: uppercase;
+    opacity: 0.5;
+    margin-top: 10px;
+    letter-spacing: 2px;
+}
+
+#timer-title {
+    font-size: 3rem;
+    margin-bottom: 30px;
+    font-weight: 300;
+    letter-spacing: -0.02em;
+    opacity: 0.9;
+}
+
+/* Settings Toggle Button */
+#settings-toggle {
+    position: absolute;
+    top: 30px;
+    left: 30px;
+    z-index: 20;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    width: 48px;
+    height: 48px;
+    color: rgba(255, 255, 255, 0.7);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    backdrop-filter: blur(10px);
+}
+
+#settings-toggle:hover {
+    background: rgba(255, 255, 255, 0.15);
+    color: white;
+    transform: scale(1.05);
+}
+
+/* Settings Panel */
+#settings-panel {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 380px;
+    height: 100%;
+    background: var(--panel-bg);
+    z-index: 30;
+    box-shadow: 10px 0 40px rgba(0, 0, 0, 0.6);
+    transform: translateX(0);
+    transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    display: flex;
+    flex-direction: column;
+    backdrop-filter: blur(30px);
+    -webkit-backdrop-filter: blur(30px);
+    border-right: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+#settings-panel.hidden {
+    transform: translateX(-100%);
+}
+
+.settings-header {
+    padding: 30px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.settings-header h2 {
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+}
+
+#close-settings {
+    background: none;
+    border: none;
+    color: rgba(255, 255, 255, 0.4);
+    font-size: 2rem;
+    cursor: pointer;
+    line-height: 1;
+    transition: color 0.2s;
+    padding: 0;
+}
+
+#close-settings:hover {
+    color: white;
+}
+
+.tabs {
+    display: flex;
+    padding: 0 30px;
+    margin-bottom: 10px;
+    gap: 20px;
+}
+
+.tab-btn {
+    background: none;
+    border: none;
+    color: rgba(255, 255, 255, 0.4);
+    padding: 10px 0;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 1rem;
+    position: relative;
+    transition: color 0.3s;
+}
+
+.tab-btn::after {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background: var(--accent);
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 0.3s ease;
+}
+
+.tab-btn.active {
+    color: white;
+}
+
+.tab-btn.active::after {
+    transform: scaleX(1);
+}
+
+.tab-content {
+    padding: 0 30px 30px 30px;
+    flex: 1;
+    overflow-y: auto;
+}
+
+.tab-content.hidden {
+    display: none;
+}
+
+/* Custom Scrollbar */
+.tab-content {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
+}
+
+.tab-content::-webkit-scrollbar {
+    width: 4px;
+}
+
+.tab-content::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+}
+
+/* Form Elements */
+.form-group {
+    margin-bottom: 28px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 10px;
+    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.6);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.form-group input[type="date"],
+.form-group input[type="number"],
+.form-group input[type="text"],
+.form-group select {
+    width: 100%;
+    padding: 14px;
+    background: var(--input-bg);
+    border: 1px solid var(--input-border);
+    color: white;
+    border-radius: 12px;
+    box-sizing: border-box;
+    font-size: 1rem;
+    font-family: inherit;
+    transition: all 0.2s;
+    outline: none;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+    border-color: var(--accent);
+    background: rgba(255, 255, 255, 0.12);
+}
+
+/* Modern Toggle Switch for Checkboxes */
+.checkbox-group {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 15px;
+}
+
+.checkbox-group span {
+    font-size: 1rem;
+    color: var(--text-color);
+}
+
+.checkbox-group input[type="checkbox"] {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 44px;
+    height: 24px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    position: relative;
+    cursor: pointer;
+    transition: background 0.3s;
+    outline: none;
+    border: none;
+}
+
+.checkbox-group input[type="checkbox"]::after {
+    content: "";
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 20px;
+    height: 20px;
+    background: white;
+    border-radius: 50%;
+    transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.checkbox-group input[type="checkbox"]:checked {
+    background: var(--accent);
+}
+
+.checkbox-group input[type="checkbox"]:checked::after {
+    transform: translateX(20px);
+}
+
+/* Radio Buttons Layout */
+.checkbox-group label {
+    text-transform: none;
+    color: white;
+    font-weight: 500;
+}
+
+.checkbox-group input[type="radio"] {
+    accent-color: var(--accent);
+    margin-right: 8px;
+    transform: scale(1.2);
+}
+
+/* Segmented Control */
+.segmented-control {
+    display: flex;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 10px;
+    padding: 4px;
+    margin-top: 10px;
+}
+
+.segmented-control label {
+    flex: 1;
+    margin: 0;
+    text-transform: none;
+}
+
+.segmented-control input {
+    display: none;
+}
+
+.segmented-control span {
+    display: block;
+    padding: 10px;
+    border-radius: 8px;
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 0.9rem;
+    font-weight: 600;
+    text-align: center;
+    transition: all 0.2s;
+}
+
+.segmented-control input:checked + span {
+    background: var(--accent);
+    color: white;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}

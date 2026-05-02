@@ -1,0 +1,25 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "CommonJS",
+    "outDir": "./",
+    "rootDir": "./src",
+    "strict": true,
+    "noImplicitAny": false,
+    "esModuleInterop": true,
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "es2020"
+    ],
+    "types": [
+      "firefox-webext-browser"
+    ]
+  },
+  "include": [
+    "src/**/*"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
+}
